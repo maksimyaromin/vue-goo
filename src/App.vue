@@ -1,34 +1,48 @@
 <template>
-    <div class="container">
-        <div class="boxes boxes--source">
-            <Box
-                v-for="name in names"
-                :key="name"
-                :name="name"
-                :isDraggable="true"
-                :onDragStart="onDragStart"
-            />
+    <div>
+        <div class="container">
+            <div class="boxes boxes--source">
+                <Box
+                    v-for="name in names"
+                    :key="name"
+                    :name="name"
+                    :isDraggable="true"
+                    :onDragStart="onDragStart"
+                />
+            </div>
+
+            <button v-on:click="onClick" class="reset-button">Reset</button>
+
+            <div
+                class="boxes boxes--destination"
+                v-on:dragover="onDragOver"
+                v-on:drop="onDrop"
+            >
+                <Box
+                    v-for="name in acceptedNames"
+                    :key="name"
+                    :name="name"
+                    :isAccepted="true"
+                />
+            </div>
         </div>
 
-        <button v-on:click="onClick" class="reset-button">Reset</button>
-
-        <div
-            class="boxes boxes--destination"
-            v-on:dragover="onDragOver"
-            v-on:drop="onDrop"
-        >
-            <Box
-                v-for="name in acceptedNames"
-                :key="name"
-                :name="name"
-                :isAccepted="true"
-            />
+        <div class="employees-table-container">
+            <EmployeeTable :employees="employees" />
         </div>
     </div>
 </template>
 
 <script>
+    import EmployeeTable from "./components/EmployeeTable.vue";
     import Box from "./components/Box.vue";
+    import {
+        Employee,
+        EmployeeName,
+        Location
+    } from "./models";
+
+    const total = 5000;
 
     const namesDB = [
         'Maksim',
@@ -39,12 +53,14 @@
     export default {
         name: "app",
         components: {
-            Box
+            Box,
+            EmployeeTable
         },
         data: function () {
             return {
                 names: [ ...namesDB ],
-                acceptedNames: []
+                acceptedNames: [],
+                employees: []
             }
         },
         methods: {
@@ -74,6 +90,29 @@
                 this.names = [ ...namesDB ];
                 this.acceptedNames = [];
             }
+        },
+        mounted: function () {
+            fetch(`https://randomuser.me/api/?results=${total}`, {
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            })
+                .then(response => response.json())
+                .then(response => {
+                    this.employees = response.results.map(employee => new Employee({
+                        name: new EmployeeName(employee.name),
+                        email: employee.email,
+                        gender: employee.gender,
+                        location: new Location({
+                            city: employee.location.city,
+                            country: employee.location.country,
+                            postcode: String(employee.location.postcode),
+                            state: employee.location.state,
+                            street: employee.location.street.name
+                        }),
+                        thumbnail: employee.picture.thumbnail
+                    }));
+                });
         }
     }
 </script>
@@ -102,5 +141,12 @@
         font-weight: bold;
         outline: none!important;
         text-transform: uppercase;
+    }
+
+    .employees-table-container {
+        display: flex;
+        justify-content: center;
+        margin-top: 30px;
+        position: relative;
     }
 </style>
